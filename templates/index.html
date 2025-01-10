@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .filters {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .filters select {
+            padding: 5px;
+            margin-right: 10px;
+        }
+        .filters form {
+            display: inline-block;
+        }
+        .task-actions, .category-actions {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .completed {
+            background-color: lightgreen;
+        }
+        .pending {
+            background-color: white;
+        }
+        .category-actions ul {
+            list-style: none;
+            padding: 0;
+        }
+        .category-actions li {
+            margin: 5px 0;
+        }
+        .filters select, .filters button {
+            font-size: 16px;
+            padding: 8px;
+        }
+        .filters label {
+            font-weight: bold;
+        }
+
+        /* New Styles for Centered and Dropdown Forms */
+        .centered-form {
+            text-align: center;
+            margin-top: 20px;
+	    display : inline-block;
+	    margin-left: 260px;
+        }
+
+        .dropdown {
+            display: none;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .dropdown input, .dropdown select, .dropdown button {
+            font-size: 16px;
+            padding: 8px;
+            margin-top: 10px;
+        }
+
+        .dropdown-toggle {
+            cursor: pointer;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .dropdown-toggle:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Todo List</h1>
+    
+    <!-- Filters Section (Centered) -->
+    <div class="filters">
+        <h2>Filters</h2>
+        <form method="get" action="{{ url_for('index') }}">
+            <!-- Status Filter -->
+            <label for="status">Status:</label>
+            <select name="status" id="status">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+            </select>
+
+            <!-- Category Filter -->
+            <label for="category">Category:</label>
+            <select name="category" id="category">
+                <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All</option>
+                {% for category in categories %}
+                    <option value="{{ category }}" {% if category == category_filter %}selected{% endif %}>{{ category }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Priority Filter -->
+            <label for="priority">Priority:</label>
+            <select name="priority" id="priority">
+                <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Add New Task Section -->
+    <div class="centered-form">
+        <button class="dropdown-toggle" onclick="toggleDropdown('add-task-dropdown')">Add New Task</button>
+    </div>
+
+    <!-- Add New Category Section -->
+    <div class="centered-form">
+        <button class="dropdown-toggle" onclick="toggleDropdown('add-category-dropdown')">Add New Category</button>
+    </div>
+
+    <!-- Delete Category Section -->
+    <div class="centered-form">
+        <button class="dropdown-toggle" onclick="toggleDropdown('delete-category-dropdown')">Delete Category</button>
+    </div>
+
+ <div id="add-task-dropdown" class="dropdown">
+            <form method="POST" action="{{ url_for('add_task') }}">
+                <input type="text" name="title" placeholder="Task Title" required>
+                <input type="datetime-local" name="deadline" required>
+
+                <!-- Dynamic category selection -->
+                <select name="category">
+                    {% for category in categories %}
+                        <option value="{{ category }}" {% if category == category_filter %}selected{% endif %}>{{ category }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Priority selection -->
+                <select name="priority">
+                    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+                </select>
+                <button type="submit">Add Task</button>
+            </form>
+        </div>
+
+<div id="add-category-dropdown" class="dropdown">
+            <form method="POST" action="{{ url_for('add_category') }}">
+                <input type="text" name="category_name" placeholder="New Category" required>
+                <button type="submit">Add Category</button>
+            </form>
+        </div>
+
+ <div id="delete-category-dropdown" class="dropdown">
+            <ul>
+                {% for category in categories %}
+                    <li>
+                        {{ category }}
+                        <form method="POST" action="{{ url_for('delete_category', category_name=category) }}" style="display:inline;">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+
+    <!-- Task List -->
+    <h2>Task List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Deadline</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Time Taken</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr class="{% if task.completed %}completed{% else %}pending{% endif %}">
+                <td>{{ task.title }}</td>
+                <td>{{ task.deadline }}</td>
+                <td>{{ task.category }}</td>
+                <td>{{ task.priority }}</td>
+                <td>{{ task.time_taken }}</td>
+                <td>
+                    {% if not task.completed %}
+                    <a href="{{ url_for('complete_task', task_id=loop.index0) }}">Complete</a>
+                    {% endif %}
+                    <a href="{{ url_for('delete_task', task_id=loop.index0) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // Automatically update URL when filters are changed
+        document.getElementById("status").addEventListener("change", function() {
+            updateFilters();
+        });
+        document.getElementById("category").addEventListener("change", function() {
+            updateFilters();
+        });
+        document.getElementById("priority").addEventListener("change", function() {
+            updateFilters();
+        });
+
+        function updateFilters() {
+            const status = document.getElementById("status").value;
+            const category = document.getElementById("category").value;
+            const priority = document.getElementById("priority").value;
+            const currentUrl = window.location.href.split('?')[0];
+            const newUrl = `${currentUrl}?status=${status}&category=${category}&priority=${priority}`;
+            window.location.href = newUrl;
+        }
+
+        // Toggle the visibility of dropdowns
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id);
+            if (dropdown.style.display === "none" || dropdown.style.display === "") {
+                dropdown.style.display = "block";
+            } else {
+                dropdown.style.display = "none";
+            }
+        }
+    </script>
+
+</body>
+</html>
+
